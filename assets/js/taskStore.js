@@ -6,6 +6,12 @@ export const DUEDATE = "taskDueDate";
 export const DESCRIPTION = "taskDescription";
 export const STATE = "state";
 export const ID = "taskId";
+export const STATEVAL = {
+   TODO:"Not Yet Started",
+   WIP: "In Progress",
+   COMPLETE: "Completed"
+};
+
 
 function generateTaskId() {
     // generate a UUID as an id
@@ -30,7 +36,10 @@ export function setStorageEntries(posting) {
       //set id and initial state which would normally be set
       //by api or database layer
       posting[ID] = generateTaskId();
-      posting[STATE] = "Not Yet Started";
+      posting[STATE] = STATEVAL.TODO;
+
+      //store date as epoch
+      posting[DUEDATE] = dayjs(posting[DUEDATE]).valueOf();
 
       //get existing array to append
       let store = getStorageEntries();
