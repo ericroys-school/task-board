@@ -7,10 +7,25 @@ body {
   min-height: 60vh;
 }
 
-.task-card {
+.card {
   margin: 0 auto;
 }
 
-.task-card:hover {
+.card:hover {
   cursor: grab;
+}
+
+.card-late * {
+  background: rgb(247, 111, 111);
+  color: white;
+}
+
+.card-good * {
+  background-color: white;
+  color: black;
+}
+
+.card-warn * {
+  background-color: orange;
+  color:white;
 }

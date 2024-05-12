@@ -1,7 +1,18 @@
-import { DESCRIPTION, DUEDATE, TITLE, getStorageEntries, setStorageEntries } from "./taskStore.js";
+import {
+  DESCRIPTION,
+  DUEDATE,
+  STATE,
+  STATEVAL,
+  TITLE,
+  getStorageEntries,
+  setStorageEntries,
+} from "./taskStore.js";
+
+//moved this into the list render function where it is better because it is
+//encapsulated where it needs to be 
+// let taskList = getStorageEntries();
 
 // Retrieve tasks and nextId from localStorage
-let taskList = getStorageEntries();
 let nextId = JSON.parse(localStorage.getItem("nextId"));
 
 /* a mapping between our task model key and the form input id 
@@ -13,40 +24,89 @@ kvMapping[TITLE] = TITLE;
 kvMapping[DUEDATE] = DUEDATE;
 kvMapping[DESCRIPTION] = DESCRIPTION;
 
-// Todo: create a function to generate a unique task id
-//(see taskStore.js)
+//moved this into taskStore.js as it should really be a
+// function bundled with other storage function (see taskStore.js)
 
-// Todo: create a function to create a task card
-function createTaskCard(task) {
- if(!task)
-    return null;
+/**
+ * Create a task card
+ * @param {*} task a task data object
+ * @param {*} state a css class to associate for colorings
+ * @returns 
+ */
+function createTaskCard(task, state) {
+  if (!task) return null;
 
-const card = (`<div class="card"">
-<div class="card-body">
+  //default to late if not provided since it will draw most attention
+  const c = !state ? "card-late" : state;
+
+  const card = $(`
+  <div class="card ${c} draggable">
+  <div class="card-body">
   <h5 class="card-title">${task[TITLE]}</h5>
-  <h6 class="card-subtitle mb-2 text-muted">${task[DUEDATE]}</h6>
+  <h6 class="card-subtitle mb-2 text-muted">${dayjs(
+    dayjs(task[DUEDATE])
+  ).format("MM/DD/YYYY")}</h6>
   <p class="card-text">${task[DESCRIPTION]}</p>
-</div>
-</div>
-`)
-return card;
+  </div>
+  </div>
+`);
+  return card;
 }
 
+/**
+ * Get the css class for appropriate state of task
+ * @param STATEVAL state 
+ * @param number timein (milliseconds)
+ * @returns 
+ */
+function getCardStatus(state, timein) {
+  //ms in a day
+  const aday = 86400 * 1000;
 
+  /* if we don't have state or timein or we have not complete state that 
+     exceeds a day then it's late.
+   */
+  if (
+    !state ||
+    !timein ||
+    (state !== STATEVAL.COMPLETE && dayjs().valueOf() - timein > aday)
+  )
+    return "card-late";
+  /* if completed or is a future date */
+  else if (state === STATEVAL.COMPLETE || dayjs().valueOf() - timein < 0)
+    return "card-good";
+  /* within a day window */
+  else return "card-warn";
+}
 
 // Todo: create a function to render the task list and make cards draggable
 function renderTaskList() {
-    taskList.forEach(t => {
-        let card = null;
-        if(card = createTaskCard(t)){
-            $("todo-cards").append(card);
-        }
-    });
+  const taskList = getStorageEntries();
+  if (!taskList || taskList.length < 1) return;
+
+  //map state to the container
+  const stateMap = {};
+  stateMap[STATEVAL.TODO] = "#todo-cards";   // $("#todo-cards");
+  stateMap[STATEVAL.WIP] =  "#in-progress-cards";  //$("#in-progress-cards");
+  stateMap[STATEVAL.COMPLETE] = "#done-cards" // $("#done-cards");
+
+  taskList.forEach((t) => {
+    let card = null;
+
+    //create a card and append to appropriate swim lane with appropriate state
+    //colorings
+    if ((card = createTaskCard(t, getCardStatus(t[STATE], t[DUEDATE])))) {
+      //make it only appendable to appropriate next state
+
+        //create in appropriate container
+      $(stateMap[t[STATE]]).append(card);
+    }
+  });
 }
 
 /**
  * Sets the css for an element to 'is-invalid'
- * @param {*} element 
+ * @param {*} element
  */
 function setInputInvalid(element) {
   const invalid = "is-invalid";
@@ -66,7 +126,6 @@ function validateAddTask(elements) {
   elements.each(function () {
     let x = null;
     if (!(x = $(this).val()) || x === "") {
-
       // set flag for invalid entry
       isValid = false;
       // call function to set the css for invalid/messaging
@@ -75,20 +134,19 @@ function validateAddTask(elements) {
       //clear any errors so shows no errors for corrected entry
       if ($(this).attr("id") !== "taskDueDate") {
         $(this).removeClass(invalid);
-      } 
-      /* add fail-safe validation of the date. Technically
+      } else {
+        /* add fail-safe validation of the date. Technically
                    though the input is set as read-only and user can only 
                    select date from date-picker
                 */
-      else {
         //use dayjs to validate the date input
         if (!dayjs($(this).val()).isValid()) {
-            //set overall invalid flag
+          //set overall invalid flag
           isValid = false;
           // call function to set the css for invalid/messaging
           setInputInvalid($(this));
         } else {
-            //clear error condition
+          //clear error condition
           $(this).removeClass(invalid);
         }
       }
@@ -98,29 +156,30 @@ function validateAddTask(elements) {
   return isValid;
 }
 
-
 // Todo: create a function to handle adding a new task
 function handleAddTask(event) {
   event.preventDefault();
 
-  //get all the inputs we care about 
+  //get all the inputs we care about
   let formInputs = $("#taskTitle, #taskDueDate, #taskDescription");
   //if inputs are invalid return otherwise store them
-  if(!validateAddTask(formInputs))
-    return;
+  if (!validateAddTask(formInputs)) return;
   //build object
-  const task = { };
+  const task = {};
   formInputs.each(function () {
     task[kvMapping[$(this).attr("id")]] = $(this).val();
     //clear the entry while we are at it
     $(this).val("");
-  })
-  console.log(JSON.stringify(event))
+  });
+
   //send to storage
   setStorageEntries(task);
 
   //close the modal
-  $("#createTaskModal").modal('hide');
+  $("#createTaskModal").modal("hide");
+
+  //refresh the list from storage
+  renderTaskList();
 }
 
 // Todo: create a function to handle deleting a task
@@ -137,6 +196,6 @@ $(document).ready(function () {
   $("#taskDueDate").datepicker();
   //add listener to addTask button
   $("#btnAddTask").on("click", handleAddTask);
-
-
+  //show task list
+  renderTaskList();
 });
