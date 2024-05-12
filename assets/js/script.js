@@ -1,4 +1,4 @@
-import { DESCRIPTION, DUEDATE, TITLE, getStorageEntries } from "./taskStore.js";
+import { DESCRIPTION, DUEDATE, TITLE, getStorageEntries, setStorageEntries } from "./taskStore.js";
 
 // Retrieve tasks and nextId from localStorage
 let taskList = getStorageEntries();
@@ -17,10 +17,32 @@ kvMapping[DESCRIPTION] = DESCRIPTION;
 //(see taskStore.js)
 
 // Todo: create a function to create a task card
-function createTaskCard(task) {}
+function createTaskCard(task) {
+ if(!task)
+    return null;
+
+const card = (`<div class="card"">
+<div class="card-body">
+  <h5 class="card-title">${task[TITLE]}</h5>
+  <h6 class="card-subtitle mb-2 text-muted">${task[DUEDATE]}</h6>
+  <p class="card-text">${task[DESCRIPTION]}</p>
+</div>
+</div>
+`)
+return card;
+}
+
+
 
 // Todo: create a function to render the task list and make cards draggable
-function renderTaskList() {}
+function renderTaskList() {
+    taskList.forEach(t => {
+        let card = null;
+        if(card = createTaskCard(t)){
+            $("todo-cards").append(card);
+        }
+    });
+}
 
 /**
  * Sets the css for an element to 'is-invalid'
@@ -90,8 +112,13 @@ function handleAddTask(event) {
   const task = { };
   formInputs.each(function () {
     task[kvMapping[$(this).attr("id")]] = $(this).val();
+    //clear the entry while we are at it
+    $(this).val("");
   })
   console.log(JSON.stringify(event))
+  //send to storage
+  setStorageEntries(task);
+
   //close the modal
   $("#createTaskModal").modal('hide');
 }
