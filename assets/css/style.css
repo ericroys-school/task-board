@@ -29,3 +29,10 @@ body {
   background-color: orange;
   color:white;
 }
+
+/* set these to height 100% because dnd doesn't allow
+   drops into no height items
+*/
+#todo-cards, #in-progress-cards, #done-cards, .card-body{
+  height:100%;
+}
