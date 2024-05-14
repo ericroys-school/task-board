@@ -35,15 +35,20 @@ export function getEntry(id) {
   return f ? f : null;
 }
 
-export function setStatus(id, status){
-
-  if((!id) || (!status)) return;
+/**
+ * Set status for a task
+ * @param string id
+ * @param STATEVAL status
+ */
+export function setStatus(id, status) {
+  if (!id || !status) return;
   let f = getEntry(id);
-  if(!f) return;
-  
+  if (!f) return;
+
   f[STATE] = status;
   setEntry(id, f);
 }
+
 /**
  * Updates an entry to local storage
  * @param {*} id the id to update
@@ -51,19 +56,35 @@ export function setStatus(id, status){
  * @returns
  */
 export function setEntry(id, task) {
-  if (!getEntry(id)) {
-    console.log(`warn: unable to find ${id} in storage`);
-    return false;
-  }
+  if ((!id) || (!task)) return false;
+  
   //get existing array to append
   let store = getStorageEntries();
+  //get index of our task
   let i = store.findIndex((a) => id === a[ID]);
   if (i > -1) {
+    //update the props with updatables
     store[i] = { ...store[i], ...task };
+    //stick it back in storage
     localStorage.setItem(TASK, JSON.stringify(store));
     return true;
   }
   return false;
+}
+
+/**
+ * Delete an entry from storage
+ * @param string id 
+ * @returns true if done otherwise false
+ */
+export function deleteEntry(id) {
+  if (!id || !getEntry(id)) return false;
+  //get existing array to append
+  let store = getStorageEntries();
+  //get index of our task
+  store = store.filter((a) => id !== a[ID]);
+  localStorage.setItem(TASK, JSON.stringify(store));
+  return true;
 }
 
 /**

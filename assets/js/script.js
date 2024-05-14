@@ -8,6 +8,7 @@ import {
   getStorageEntries,
   setStorageEntries,
   getEntry,
+  deleteEntry,
   setStatus,
 } from "./taskStore.js";
 
@@ -62,6 +63,7 @@ function createTaskCard(task, state) {
   ).format("MM/DD/YYYY")}</h6>
   <p class="card-text">${task[DESCRIPTION]}</p>
   </div>
+  <button class="btn-delete btn btn-primary" data-id="${task[ID]}">Delete</button>
   </div>
 `)
     .data("text", task[ID])
@@ -202,7 +204,15 @@ function handleAddTask(event) {
 }
 
 // Todo: create a function to handle deleting a task
-function handleDeleteTask(event) {}
+function handleDeleteTask(event) {
+  //get the id we stored in the data attribute
+  let id = $(event.target).attr("data-id");
+  //remove from storage
+  deleteEntry(id);
+  //remove from ui
+  $(`#${id}`).remove();
+
+}
 
 function isAccepted(target, taskId) {
   if(!(target) || (!taskId)) return false;
@@ -263,7 +273,16 @@ $(document).ready(function () {
   renderTaskList();
   //make all the lanes droppable
   makeDroppable([DONEID, WIPID, TODOID]);
+  //add delegate delete
+  makeDeleteDelegate([DONEID, WIPID, TODOID]);
 });
+
+function makeDeleteDelegate(items){
+  items.forEach((item) => {
+    let x = $(`#${item}`);
+    x.on('click', '.btn-delete', handleDeleteTask );
+  });
+}
 
 /**
  * Make items droppable
