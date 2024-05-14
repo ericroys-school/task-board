@@ -4,12 +4,13 @@ import {
   STATE,
   STATEVAL,
   TITLE,
+  ID,
   getStorageEntries,
   setStorageEntries,
 } from "./taskStore.js";
 
 //moved this into the list render function where it is better because it is
-//encapsulated where it needs to be 
+//encapsulated where it needs to be
 // let taskList = getStorageEntries();
 
 // Retrieve tasks and nextId from localStorage
@@ -31,7 +32,7 @@ kvMapping[DESCRIPTION] = DESCRIPTION;
  * Create a task card
  * @param {*} task a task data object
  * @param {*} state a css class to associate for colorings
- * @returns 
+ * @returns
  */
 function createTaskCard(task, state) {
   if (!task) return null;
@@ -40,7 +41,7 @@ function createTaskCard(task, state) {
   const c = !state ? "card-late" : state;
 
   const card = $(`
-  <div class="card ${c} draggable">
+  <div class="card ${c} task-draggable" id="${task[ID]}">
   <div class="card-body">
   <h5 class="card-title">${task[TITLE]}</h5>
   <h6 class="card-subtitle mb-2 text-muted">${dayjs(
@@ -49,15 +50,18 @@ function createTaskCard(task, state) {
   <p class="card-text">${task[DESCRIPTION]}</p>
   </div>
   </div>
-`);
-  return card;
+`).data('text', `${task[ID]}`)
+.draggable({
+  cursor: 'move'
+});
+return card;
 }
 
 /**
  * Get the css class for appropriate state of task
- * @param STATEVAL state 
+ * @param STATEVAL state
  * @param number timein (milliseconds)
- * @returns 
+ * @returns
  */
 function getCardStatus(state, timein) {
   //ms in a day
@@ -72,23 +76,25 @@ function getCardStatus(state, timein) {
     (state !== STATEVAL.COMPLETE && dayjs().valueOf() - timein > aday)
   )
     return "card-late";
-  /* if completed or is a future date */
-  else if (state === STATEVAL.COMPLETE || dayjs().valueOf() - timein < 0)
+  /* if completed or is a future date */ else if (
+    state === STATEVAL.COMPLETE ||
+    dayjs().valueOf() - timein < 0
+  )
     return "card-good";
-  /* within a day window */
-  else return "card-warn";
+  /* within a day window */ else return "card-warn";
 }
 
 // Todo: create a function to render the task list and make cards draggable
 function renderTaskList() {
   const taskList = getStorageEntries();
+
   if (!taskList || taskList.length < 1) return;
 
   //map state to the container
   const stateMap = {};
-  stateMap[STATEVAL.TODO] = "#todo-cards";   // $("#todo-cards");
-  stateMap[STATEVAL.WIP] =  "#in-progress-cards";  //$("#in-progress-cards");
-  stateMap[STATEVAL.COMPLETE] = "#done-cards" // $("#done-cards");
+  stateMap[STATEVAL.TODO] = "#todo-cards"; // $("#todo-cards");
+  stateMap[STATEVAL.WIP] = "#in-progress-cards"; //$("#in-progress-cards");
+  stateMap[STATEVAL.COMPLETE] = "#done-cards"; // $("#done-cards");
 
   taskList.forEach((t) => {
     let card = null;
@@ -97,11 +103,16 @@ function renderTaskList() {
     //colorings
     if ((card = createTaskCard(t, getCardStatus(t[STATE], t[DUEDATE])))) {
       //make it only appendable to appropriate next state
-
-        //create in appropriate container
+      //create in appropriate container
       $(stateMap[t[STATE]]).append(card);
     }
   });
+}
+
+function handleStartDrag(event) {
+  // let tid = event.target.id;
+  // event.originalEvent.dataTransfer.setData("text", tid);
+  // console.log(tid);
 }
 
 /**
@@ -186,7 +197,21 @@ function handleAddTask(event) {
 function handleDeleteTask(event) {}
 
 // Todo: create a function to handle dropping a task into a new status lane
-function handleDrop(event, ui) {}
+function handleDrop(event, ui) {
+  let a = event.target.id;
+  let b = ui.draggable.data('text');
+  console.log("A: " + a + "    B: " + b);
+  let x = $(`#${a}`);
+  let y = $(`#${b}`);
+  y.removeAttr("style");
+  x.append(y);
+  
+
+    console.log("****")
+    ui.draggable.draggable('disable');
+    //a.droppable('disable');
+  
+}
 
 // Todo: when the page loads, render the task list,
 //add event listeners, make lanes droppable,
@@ -198,4 +223,55 @@ $(document).ready(function () {
   $("#btnAddTask").on("click", handleAddTask);
   //show task list
   renderTaskList();
+  //makeme();
 });
+
+$("#x").droppable({
+  hoverClass: 'hovered',
+  drop: handleDrop
+});
+
+// $("#x").droppable();
+// $("#x").on("dragover", function (event) {
+//   event.preventDefault();
+//   console.log("DRAGGOVER");
+// });
+
+function makeme(){
+  let card = $(`<div><p>UGHTHSH</div>`)
+  .data("text", "1234")
+  .attr('id', "1234").appendTo("#todo-cards")
+  .draggable({
+    cursor: 'move',
+    //revert: true
+  }) ;
+
+
+//  $("#todo-cards").append(card);
+
+}
+
+// $(document).on("drop", "#x", function (event, i){
+
+//   console.log("DROPPING");
+//   console.log(event);
+//   console.log("DATA: " + event.originalEvent.target.id);
+
+//   console.log(event);
+//   const taskId = event.originalEvent.target.id;
+//   let c = $(`#${taskId}`);
+//   c.removeAttr("style");
+//   let id = event.currentTarget.id;
+//   $(`#${id}`).append(c);
+//   // let tid = event.originalEvent.target.id;
+//   // if (!tid || tid === "") return;
+//   // console.log("TID: " + tid);
+//   // let c = $(`#${tid}`);
+//   // //found an instance where style was added that put the component
+//   // //off screen, so just adding a fail-safe
+//   // c.removeAttr("style");
+//   // let id = event.currentTarget.id;
+//   // if (!id || id === "") return;
+//   // $(`${id}`).append(c);
+// });
+// // $(document).on("drop", "#in-progress-cards", handleDrop);

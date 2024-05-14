@@ -24,6 +24,7 @@ function generateTaskId() {
  */
 export function getStorageEntries() {
     let store = localStorage.getItem(TASK);
+    console.log("*****" + store.length)
     return store ? JSON.parse(store) : [];
   }
 
