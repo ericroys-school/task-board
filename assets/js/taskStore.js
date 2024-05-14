@@ -91,7 +91,7 @@ export function deleteEntry(id) {
  * write the new item to the local storage for taskEntries
  * @param {TITLE:"", DUEDATE:"", DESCRIPTION:""} posting
  */
-export function setStorageEntries(posting) {
+export function createEntry(posting) {
   if (posting) {
     //set id and initial state which would normally be set
     //by api or database layer

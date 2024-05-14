@@ -9,6 +9,23 @@ body {
 
 .card {
   margin: 0 auto;
+  margin-bottom: 4px;
+  border-radius: 15px;
+  
+}
+.card-body {
+  border-radius: 15px;
+}
+
+.card-subtitle {
+  margin-top:5px;
+}
+
+.card-title {
+  filter: brightness(90%);
+  padding: 10px;
+  border-top-left-radius: 10px; 
+  border-top-right-radius: 10px;
 }
 
 .card:hover {
@@ -35,4 +52,12 @@ body {
 */
 #todo-cards, #in-progress-cards, #done-cards, .card-body{
   height:100%;
+}
+
+.btn-delete {
+  color:white;
+  background-color: red;
+  margin: 3px;
+  width: 50%;
+  align-self: center;
 }
