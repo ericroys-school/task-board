@@ -6,8 +6,9 @@ import {
   TITLE,
   ID,
   getStorageEntries,
-  setStorageEntries,
+  createEntry,
   getEntry,
+  deleteEntry,
   setStatus,
 } from "./taskStore.js";
 
@@ -28,15 +29,24 @@ kvMapping[DUEDATE] = DUEDATE;
 kvMapping[DESCRIPTION] = DESCRIPTION;
 
 /*shorter is better */
-const TODOID = "todo-cards";
-const WIPID = "in-progress-cards";
-const DONEID = "done-cards";
+const lane = {
+  TODOID: "todo-cards",
+  WIPID: "in-progress-cards",
+  DONEID: "done-cards",
+};
 
 /* map status to lane */
 const statusLane = {};
-statusLane[TODOID] = STATEVAL.TODO;
-statusLane[WIPID] = STATEVAL.WIP;
-statusLane[DONEID] = STATEVAL.COMPLETE;
+statusLane[lane.TODOID] = STATEVAL.TODO;
+statusLane[lane.WIPID] = STATEVAL.WIP;
+statusLane[lane.DONEID] = STATEVAL.COMPLETE;
+
+/* card colorings for different states */
+const cardColoring = {
+  LATE: "card-late",
+  WARN: "card-warn",
+  GOOD: "card-good",
+};
 
 //moved this into taskStore.js as it should really be a
 // function bundled with other storage function (see taskStore.js)
@@ -54,14 +64,18 @@ function createTaskCard(task, state) {
   const c = !state ? "card-late" : state;
 
   const card = $(`
-  <div class="card ${c} task-draggable" id="${task[ID]}">
+  <div class="card ${c} " id="${task[ID]}">
   <div class="card-body">
   <h5 class="card-title">${task[TITLE]}</h5>
-  <h6 class="card-subtitle mb-2 text-muted">${dayjs(
+  <h6 class="card-subtitle">${dayjs(
     dayjs(task[DUEDATE])
   ).format("MM/DD/YYYY")}</h6>
-  <p class="card-text">${task[DESCRIPTION]}</p>
+  <p class="card-text">${task[DESCRIPTION]}
+  </p><button class="btn-delete btn btn-primary" data-id="${
+    task[ID]
+  }">Delete</button>
   </div>
+  
   </div>
 `)
     .data("text", task[ID])
@@ -90,27 +104,30 @@ function getCardStatus(state, timein) {
     !timein ||
     (state !== STATEVAL.COMPLETE && dayjs().valueOf() - timein > aday)
   )
-    return "card-late";
-  /* if completed or is a future date */ 
-  else if (
+    return cardColoring.LATE;
+  /* if completed or is a future date */ else if (
     state === STATEVAL.COMPLETE ||
     dayjs().valueOf() - timein < 0
   )
-    return "card-good";
-  /* within a day window */ else return "card-warn";
+    return cardColoring.GOOD;
+  /* within a day window so it's fair warning
+   */ else return cardColoring.WARN;
 }
 
 // Todo: create a function to render the task list and make cards draggable
 function renderTaskList() {
+  //clear the lanes
+  Object.values(lane).map((item) => $(`#${item}`).empty());
+  //get refreshed items from storage
   const taskList = getStorageEntries();
-
+  //do nothing if nothing otherwise something
   if (!taskList || taskList.length < 1) return;
 
   //map state to the container
   const stateMap = {};
-  stateMap[STATEVAL.TODO] = `#${TODOID}`;
-  stateMap[STATEVAL.WIP] = `#${WIPID}`;
-  stateMap[STATEVAL.COMPLETE] = `#${DONEID}`;
+  stateMap[STATEVAL.TODO] = `#${lane.TODOID}`;
+  stateMap[STATEVAL.WIP] = `#${lane.WIPID}`;
+  stateMap[STATEVAL.COMPLETE] = `#${lane.DONEID}`;
 
   taskList.forEach((t) => {
     let card = null;
@@ -192,51 +209,54 @@ function handleAddTask(event) {
   });
 
   //send to storage
-  setStorageEntries(task);
+  createEntry(task);
 
   //close the modal
   $("#createTaskModal").modal("hide");
-
+  // window.location.reload();
   //refresh the list from storage
+
   renderTaskList();
 }
 
 // Todo: create a function to handle deleting a task
-function handleDeleteTask(event) {}
+function handleDeleteTask(event) {
+  //get the id we stored in the data attribute
+  let id = $(event.target).attr("data-id");
+  //remove from storage
+  deleteEntry(id);
+  //remove from ui
+  $(`#${id}`).remove();
+}
 
 function isAccepted(target, taskId) {
-  if(!(target) || (!taskId)) return false;
-  
+  if (!target || !taskId) return false;
+
   //get the task from storage to get the current status
   let entry = null;
-  const status = (entry=getEntry(taskId))? entry[STATE] : null;
-  if(!status){
+  const status = (entry = getEntry(taskId)) ? entry[STATE] : null;
+  if (!status) {
     console.log(`warn: unable to get status for ${taskId}`);
     return false;
   }
   //only allow wip to transition back to to-do
-  if(target === TODOID)
-    return status === STATEVAL.WIP;
+  if (target === lane.TODOID) return status === STATEVAL.WIP;
   //only allow todo to transition to wip
-  if(target === WIPID)
-    return status === STATEVAL.TODO;
+  if (target === lane.WIPID) return status === STATEVAL.TODO;
   //anything can transition to done
-  if(target === DONEID)
+  if (target === lane.DONEID)
     return status === STATEVAL.TODO || status === STATEVAL.WIP;
   //anything else is not acceptable
   return false;
-  
 }
 
 // Todo: create a function to handle dropping a task into a new status lane
 function handleDrop(event, ui) {
   let a = event.target.id;
   let b = ui.draggable.data("text");
-  console.log("ACCEPTED: " + isAccepted(a, b));
-  if(!isAccepted(a,b))
-    return;
+
+  if (!isAccepted(a, b)) return;
   setStatus(b, statusLane[a]);
-  // console.log("A: " + a + "    B: " + b);
 
   //get the elements
   let x = $(`#${a}`);
@@ -247,8 +267,12 @@ function handleDrop(event, ui) {
   x.append(y);
 
   //if it goes into done then no longer allow drag
-  if(a === DONEID)
-  ui.draggable.draggable("disable");
+  if (a === lane.DONEID){
+    let c = ui.draggable.attr("class")
+    .replace(cardColoring.LATE, cardColoring.GOOD)
+    .replace(cardColoring.WARN, cardColoring.GOOD);
+    ui.draggable.attr("class", c);
+  } 
 }
 
 // Todo: when the page loads, render the task list,
@@ -262,12 +286,22 @@ $(document).ready(function () {
   //show task list
   renderTaskList();
   //make all the lanes droppable
-  makeDroppable([DONEID, WIPID, TODOID]);
+  makeDroppable(Object.values(lane));
+  //add delegate delete
+  makeDeleteDelegate(Object.values(lane));
 });
+
+function makeDeleteDelegate(items) {
+  items.forEach((item) => {
+    console.log(item);
+    let x = $(`#${item}`);
+    x.on("click", ".btn-delete", handleDeleteTask);
+  });
+}
 
 /**
  * Make items droppable
- * @param [string] items 
+ * @param [string] items
  */
 function makeDroppable(items) {
   items.forEach((item) => {
