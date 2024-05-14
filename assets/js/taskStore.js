@@ -20,7 +20,7 @@ function generateTaskId() {
  * get the task entry array from local storage or create an empty one
  * @returns [{TITLE:"", DUEDATE:"", DESCRIPTION:"", STATE: "", ID: ""}] or empty array
  */
-export function getStorageEntries() {
+export function getListEntries() {
   let store = localStorage.getItem(TASK);
   return store ? JSON.parse(store) : [];
 }
@@ -31,7 +31,7 @@ export function getStorageEntries() {
  * @returns task or null if none found
  */
 export function getEntry(id) {
-  let f = getStorageEntries().find((t) => id === t[ID]);
+  let f = getListEntries().find((t) => id === t[ID]);
   return f ? f : null;
 }
 
@@ -59,7 +59,7 @@ export function setEntry(id, task) {
   if ((!id) || (!task)) return false;
   
   //get existing array to append
-  let store = getStorageEntries();
+  let store = getListEntries();
   //get index of our task
   let i = store.findIndex((a) => id === a[ID]);
   if (i > -1) {
@@ -80,7 +80,7 @@ export function setEntry(id, task) {
 export function deleteEntry(id) {
   if (!id || !getEntry(id)) return false;
   //get existing array to append
-  let store = getStorageEntries();
+  let store = getListEntries();
   //get index of our task
   store = store.filter((a) => id !== a[ID]);
   localStorage.setItem(TASK, JSON.stringify(store));
@@ -102,7 +102,7 @@ export function createEntry(posting) {
     posting[DUEDATE] = dayjs(posting[DUEDATE]).valueOf();
 
     //get existing array to append
-    let store = getStorageEntries();
+    let store = getListEntries();
     store.push(posting);
     localStorage.setItem(TASK, JSON.stringify(store));
   }

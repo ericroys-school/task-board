@@ -5,7 +5,7 @@ import {
   STATEVAL,
   TITLE,
   ID,
-  getStorageEntries,
+  getListEntries,
   createEntry,
   getEntry,
   deleteEntry,
@@ -119,7 +119,7 @@ function renderTaskList() {
   //clear the lanes
   Object.values(lane).map((item) => $(`#${item}`).empty());
   //get refreshed items from storage
-  const taskList = getStorageEntries();
+  const taskList = getListEntries();
   //do nothing if nothing otherwise something
   if (!taskList || taskList.length < 1) return;
 
