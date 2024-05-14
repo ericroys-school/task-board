@@ -17,7 +17,8 @@ import {
 // let taskList = getStorageEntries();
 
 // Retrieve tasks and nextId from localStorage
-let nextId = JSON.parse(localStorage.getItem("nextId"));
+// don't need this. 
+//let nextId = JSON.parse(localStorage.getItem("nextId"));
 
 /* a mapping between our task model key and the form input id 
    note: technically they are same at this point, but if key on 
@@ -48,20 +49,17 @@ const cardColoring = {
   GOOD: "card-good",
 };
 
-//moved this into taskStore.js as it should really be a
-// function bundled with other storage function (see taskStore.js)
-
 /**
  * Create a task card
- * @param {*} task a task data object
- * @param {*} state a css class to associate for colorings
+ * @param task a task data object
+ * @param state a css class to associate for colorings
  * @returns
  */
 function createTaskCard(task, state) {
   if (!task) return null;
 
   //default to late if not provided since it will draw most attention
-  const c = !state ? "card-late" : state;
+  const c = !state ? cardColoring.LATE : state;
 
   const card = $(`
   <div class="card ${c} " id="${task[ID]}">
@@ -75,7 +73,6 @@ function createTaskCard(task, state) {
     task[ID]
   }">Delete</button>
   </div>
-  
   </div>
 `)
     .data("text", task[ID])
@@ -116,7 +113,7 @@ function getCardStatus(state, timein) {
 
 // Todo: create a function to render the task list and make cards draggable
 function renderTaskList() {
-  //clear the lanes
+  //clear the lanes so don't end up with duplicates
   Object.values(lane).map((item) => $(`#${item}`).empty());
   //get refreshed items from storage
   const taskList = getListEntries();
@@ -141,7 +138,8 @@ function renderTaskList() {
 }
 
 /**
- * Sets the css for an element to 'is-invalid'
+ * Sets the css for an element to 'is-invalid' as is done for 
+ * the process of form validation
  * @param {*} element
  */
 function setInputInvalid(element) {
@@ -210,12 +208,9 @@ function handleAddTask(event) {
 
   //send to storage
   createEntry(task);
-
   //close the modal
   $("#createTaskModal").modal("hide");
-  // window.location.reload();
   //refresh the list from storage
-
   renderTaskList();
 }
 
@@ -229,6 +224,12 @@ function handleDeleteTask(event) {
   $(`#${id}`).remove();
 }
 
+/**
+ * Helper function to determin if an item can be dropped on an element
+ * @param {*} target 
+ * @param {*} taskId 
+ * @returns 
+ */
 function isAccepted(target, taskId) {
   if (!target || !taskId) return false;
 
@@ -256,8 +257,10 @@ function handleDrop(event, ui) {
   let b = ui.draggable.data("text");
 
   if (!isAccepted(a, b)) return;
+  //update the task status in storage
   setStatus(b, statusLane[a]);
 
+  //to the moving in the lanes, etc
   //get the elements
   let x = $(`#${a}`);
   let y = $(`#${b}`);
@@ -266,7 +269,7 @@ function handleDrop(event, ui) {
   //put draggable into droppable
   x.append(y);
 
-  //if it goes into done then no longer allow drag
+  //clear colorings for done items
   if (a === lane.DONEID){
     let c = ui.draggable.attr("class")
     .replace(cardColoring.LATE, cardColoring.GOOD)
@@ -291,6 +294,10 @@ $(document).ready(function () {
   makeDeleteDelegate(Object.values(lane));
 });
 
+/**
+ * Add delete delegation to items
+ * @param {*} items 
+ */
 function makeDeleteDelegate(items) {
   items.forEach((item) => {
     console.log(item);
